@@ -1,0 +1,74 @@
+# ==========================================
+# 1. INSTALACIÓN DE GOOGLE AUTHENTICATOR
+# ==========================================
+# Instalar el paquete de Google Authenticator y QREncode en Red Hat / Fedora
+sudo dnf install -y google-authenticator qrencode
+
+# Ejecutar el asistente de configuración para generar el secreto y el código QR del usuario
+google-authenticator
+
+
+# ==========================================
+# 2. ORGANIZACIÓN Y SEGURIDAD DE ARCHIVOS
+# ==========================================
+# Crear la carpeta .ssh con permisos seguros (700) si no existe
+mkdir -p ~/.ssh && chmod 700 ~/.ssh
+
+# Mover el archivo secreto generado por Google Authenticator a una ubicación segura dentro de .ssh
+mv ~/.google_authenticator ~/.ssh/
+
+# Restaurar el contexto de seguridad SELinux para la carpeta .ssh (ejecutar dos veces para asegurar)
+restorecon -Rv ~/.ssh
+restorecon -Rv ~/.ssh
+
+
+# ==========================================
+# 3. CONFIGURACIÓN DE PAM PARA SSH
+# ==========================================
+# Hacer una copia de respaldo del archivo de configuración PAM para SSH
+sudo cp /etc/pam.d/sshd /etc/pam.d/sshd.bak
+
+# Editar manualmente el archivo PAM (opcional, para verificación visual)
+sudo nano /etc/pam.d/sshd
+# (Nota: Se debe añadir o modificar la línea de autenticación requerida:)
+# auth       required     pam_google_authenticator.so secret=/home/${USER}/.ssh/.google_authenticator nullok
+
+# Ver las primeras líneas del archivo PAM para verificar la estructura
+sudo head -4 /etc/pam.d/sshd
+
+# Automatizar la inserción de la regla de autenticación PAM mediante sed (si se prefiere por comando)
+sudo sed -i '/^auth.*substack.*password-auth/a auth       required     pam_google_authenticator.so secret=/home/${USER}/.ssh/.google_authenticator nullok/' /etc/pam.d/sshd
+
+# Verificación de las primeras líneas después de la inserción
+sudo head -5 /etc/pam.d/sshd
+
+
+# ==========================================
+# 4. CONFIGURACIÓN DEL SERVICIO SSH (SSHD)
+# ==========================================
+# Crear un archivo de configuración independiente para habilitar 2FA en SSH
+sudo tee /etc/ssh/sshd_config.d/10-2fa.conf <<EOF
+UsePAM yes
+KbdInteractiveAuthentication yes
+AuthenticationMethods keyboard-interactive
+EOF
+
+# Probar la sintaxis de la configuración de SSH para evitar errores de servicio
+sudo sshd -t
+
+# Reiniciar el servicio SSH para aplicar los cambios
+sudo systemctl restart sshd
+
+# Verificar que los parámetros de autenticación estén activos correctamente
+sudo sshd -T | grep -Ei 'usepam|kbdinteractive|authenticationmethods'
+
+
+# ==========================================
+# 5. PRUEBA DE CONEXIÓN (DESDE POWERSHELL / CLIENTE)
+# ==========================================
+
+# Intentar la conexión SSH al servidor remoto introduciendo usuario, contraseña y código OTP
+ssh acespedes@10.0.0.199
+
+# Verificar el usuario activo tras iniciar sesión exitosamente
+whoami
