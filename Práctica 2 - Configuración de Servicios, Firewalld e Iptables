@@ -1,0 +1,88 @@
+# ==========================================
+# MÁQUINA 1: Instalación y Configuración Base
+# ==========================================
+
+# 1. Comprobar la dirección IP y conectividad de red
+hostname -I
+ping 10.0.0.199
+
+# 2. Instalar los servicios web (httpd), FTP (vsftpd) y SSH (openssh-server)
+sudo dnf install -y httpd vsftpd openssh-server
+
+# 3. Habilitar e iniciar los servicios de forma persistente
+sudo systemctl enable --now httpd vsftpd sshd
+
+# 4. Permitir los servicios en el cortafuegos (Firewalld)
+sudo firewall-cmd --add-service={http,ftp,ssh}
+
+# 5. Verificar los puertos en escucha (21, 22, 80)
+sudo ss -tlnp | grep -E ':(21|22|80)\b'
+
+
+# ==========================================
+# POWERSHELL: Comprobación Inicial de Conectividad
+# ==========================================
+
+Test-NetConnection 10.0.0.199 -Port 80
+Test-NetConnection 10.0.0.199 -Port 21
+Test-NetConnection 10.0.0.199 -Port 22
+
+
+# ==========================================
+# MÁQUINA 1: Bloqueo de Puertos con Iptables
+# ==========================================
+
+# 6. Bloquear temporalmente el tráfico entrante a los puertos 21, 22 y 80
+sudo iptables -I INPUT -p tcp -m multiport --dports 21,22,80 -j DROP
+
+
+# ==========================================
+# POWERSHELL: Comprobación Post-Bloqueo (Iptables)
+# ==========================================
+
+Test-NetConnection 10.0.0.199 -Port 80
+
+
+# ==========================================
+# MÁQUINA 1: Limpieza de Reglas y Gestión de Firewalld
+# ==========================================
+
+# 7. Eliminar la regla de bloqueo de iptables y listar las reglas actuales
+sudo iptables -D INPUT -p tcp -m multiport --dports 21,22,80 -j DROP
+sudo iptables -L INPUT -n --line-numbers
+
+# 8. Listar la configuración actual de Firewalld
+sudo firewall-cmd --list-all
+
+# 9. Remover servicios y el puerto 80 en Firewalld
+sudo firewall-cmd --remove-service=http --remove-service=ftp --remove-service=ssh
+sudo firewall-cmd --remove-port=80/tcp
+
+# 10. Ver la lista actualizada de Firewalld
+sudo firewall-cmd --list-all
+
+
+# ==========================================
+# POWERSHELL: Comprobación con Servicios Removidos
+# ==========================================
+
+Test-NetConnection 10.0.0.199 -Port 80
+
+
+# ==========================================
+# MÁQUINA 1: Restauración de Servicios en Firewalld
+# ==========================================
+
+# 11. Volver a agregar los servicios y el puerto 80 a Firewalld
+sudo firewall-cmd --add-service=http --add-service=ftp --add-service=ssh
+sudo firewall-cmd --add-port=80/tcp
+
+# 12. Listar la configuración final de Firewalld
+sudo firewall-cmd --list-all
+
+
+# ==========================================
+# POWERSHELL: Verificación Final de Conectividad
+# ==========================================
+
+Test-NetConnection 10.0.0.199 -Port 80
