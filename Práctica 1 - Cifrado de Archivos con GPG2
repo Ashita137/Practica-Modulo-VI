@@ -1,0 +1,44 @@
+# 1. Instalar la herramienta GnuPG2
+sudo dnf install -y gnupg2
+
+# 2. Generar el par de claves rápido para Ashley Cespedes
+gpg2 --quick-generate-key "Ashley Cespedes <alexandracespedes44@gmail.com>" default default 1y
+
+# 3. Finalizar procesos del agente y limpiar configuraciones previas (opcional para reinicio limpio)
+gpgconf --kill all
+rm -rf ~/.gnupg
+
+# 4. Volver a generar la clave por defecto con los datos actualizados
+gpg2 --quick-generate-key "Ashley Cespedes <alexandracespedes44@gmail.com>" default default 1y
+
+# 5. Listar las claves públicas disponibles
+gpg2 --list-keys
+
+# 6. Crear el directorio de trabajo y acceder a él
+mkdir ~/practica-cifrado
+cd ~/practica-cifrado
+
+# 7. Crear el archivo con información confidencial
+echo "Informacion confidencial - Practica 1 Ashley Cespedes" > secreto.txt
+
+# 8. Verificar el contenido y detalles del archivo original
+cat secreto.txt
+ls -l
+
+# 9. Cifrar el archivo en formato ASCII armado (Armor) usando tu correo
+gpg2 -e -a -r "alexandracespedes44@gmail.com" secreto.txt
+
+# 10. Destruir/eliminar de forma segura el archivo de texto plano original
+shred -u secreto.txt
+
+# 11. Visualizar el archivo cifrado y comprobar su tipo
+cat secreto.txt.asc
+file secreto.txt.asc
+
+# 12. Reiniciar el agente GPG y descifrar el archivo resultante
+gpgconf --kill gpg-agent
+gpg -o secreto_descifrado.txt -d secreto.txt.asc
+
+# 13. Ver el contenido del archivo descifrado y listar los archivos del directorio
+cat secreto_descifrado.txt
+ls -l
